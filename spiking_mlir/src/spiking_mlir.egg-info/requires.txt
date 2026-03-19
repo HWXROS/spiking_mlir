@@ -1,0 +1,7 @@
+torch>=2.0
+onnx
+onnxscript
+spikingjelly
+
+[mlir]
+torch-mlir
