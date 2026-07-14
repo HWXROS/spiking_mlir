@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: spiking_mlir
+Version: 0.1.0
+Summary: Convert SpikingJelly SNN models to ONNX and MLIR format
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0
+Requires-Dist: onnx
+Requires-Dist: onnxscript
+Requires-Dist: spikingjelly
+Provides-Extra: mlir
+Requires-Dist: torch-mlir; extra == "mlir"
