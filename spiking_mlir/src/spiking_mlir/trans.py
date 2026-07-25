@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from .register import *
 from spikingjelly.activation_based import layer, neuron
+from spikingjelly.clock_driven import neuron as cd_neuron
 
 
 # ============================================================================
@@ -303,6 +304,27 @@ def replace_layer_with_nn(original_layer):
             v_threshold=original_layer.v_threshold,
             v_reset=v_reset
         )
+    # clock_driven neurons (MultiStepLIFNode, MultiStepParametricLIFNode, etc.)
+    # These inherit from clock_driven.LIFNode/ParametricLIFNode and share attributes
+    # with their activation_based counterparts.
+    elif isinstance(original_layer, cd_neuron.LIFNode):
+        v_reset = getattr(original_layer, 'v_reset', 0.0)
+        v_reset = v_reset if v_reset is not None else float('nan')
+        return LIFNodeWrapper(
+            v_threshold=original_layer.v_threshold,
+            v_reset=v_reset,
+            tau=getattr(original_layer, 'tau', 2.0),
+            decay_input=float(getattr(original_layer, 'decay_input', True))
+        )
+    elif isinstance(original_layer, cd_neuron.ParametricLIFNode):
+        w = original_layer.w.data if hasattr(original_layer, 'w') and original_layer.w is not None else torch.tensor(0.0)
+        v_reset = getattr(original_layer, 'v_reset', 0.0)
+        v_reset = v_reset if v_reset is not None else float('nan')
+        return PLIFNodeWrapper(
+            w=w,
+            v_threshold=original_layer.v_threshold,
+            v_reset=v_reset
+        )
     else:
         return original_layer
 
@@ -312,7 +334,8 @@ def replace_layers_recursive(model: nn.Module) -> nn.Module:
         if isinstance(child, (
             layer.Flatten, layer.Linear, layer.Conv2d, layer.Conv1d,
             layer.MaxPool2d, layer.AvgPool2d, layer.BatchNorm2d, layer.Dropout,
-            neuron.IFNode, neuron.LIFNode, neuron.ParametricLIFNode
+            neuron.IFNode, neuron.LIFNode, neuron.ParametricLIFNode,
+            cd_neuron.LIFNode, cd_neuron.ParametricLIFNode,
         )):
             new_layer = replace_layer_with_nn(child)
             setattr(model, name, new_layer)
